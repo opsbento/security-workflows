@@ -50,7 +50,7 @@ jobs:
       minimum-severity: high
       allow-major: false
       maximum-updates: 1
-      remediation-core-ref: v0.1.0
+      remediation-core-version: v0.1.0
       security-workflows-ref: v1.0.0
 ```
 
@@ -70,6 +70,18 @@ When remediation-core returns `VERIFIED_UPDATE`, the workflow:
 
 No PR is created for `NO_FINDING`, `SKIPPED`, or `NEEDS_MANUAL_REVIEW`.
 
+## remediation-core CLI
+
+The workflow downloads a pinned remediation-core CLI release asset. It does not checkout or build remediation-core source during caller repository runs.
+
+Default asset:
+
+```text
+ghcr.io is not required.
+GitHub Release: opsbento/remediation-core v0.1.0
+Asset: remediate-linux-amd64
+```
+
 ## Compatibility
 
 | Security Workflows | Remediation Core | Status |
@@ -78,4 +90,4 @@ No PR is created for `NO_FINDING`, `SKIPPED`, or `NEEDS_MANUAL_REVIEW`.
 
 ## Production Pinning
 
-Release branches/tags should pin `remediation-core-ref` and `security-workflows-ref` to immutable tags or commit SHAs. The reusable workflow is prepared for that model through explicit ref inputs.
+Release branches/tags should pin `remediation-core-version`, `remediation-core-asset`, and `security-workflows-ref` to released versions. Production releases should also pin third-party actions to full commit SHAs.

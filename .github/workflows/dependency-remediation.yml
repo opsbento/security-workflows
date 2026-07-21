@@ -29,15 +29,20 @@ on:
         type: number
         default: 1
       remediation-core-repository:
-        description: Repository containing remediation-core source.
+        description: Repository containing remediation-core CLI releases.
         required: false
         type: string
         default: opsbento/remediation-core
-      remediation-core-ref:
-        description: Pinned remediation-core ref or SHA.
+      remediation-core-version:
+        description: Pinned remediation-core release tag.
         required: false
         type: string
-        default: main
+        default: v0.1.0
+      remediation-core-asset:
+        description: remediation-core release asset to download.
+        required: false
+        type: string
+        default: remediate-linux-amd64
       security-workflows-repository:
         description: Repository containing workflow helper scripts.
         required: false
@@ -101,7 +106,6 @@ jobs:
       GH_TOKEN: ${{ secrets.REMEDIATION_TOKEN || github.token }}
       REMEDIATION_RESULT: /tmp/remediation/result.json
       REMEDIATION_REPORTS: /tmp/remediation/reports
-      REMEDIATION_CORE_DIR: /tmp/remediation-core-source
       SECURITY_WORKFLOWS_DIR: /tmp/security-workflows-source
     steps:
       - name: Checkout caller repository
@@ -110,24 +114,12 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.REMEDIATION_TOKEN || github.token }}
 
-      - name: Fetch remediation core
-        run: |
-          set -euo pipefail
-          git clone --no-checkout "https://x-access-token:${GH_TOKEN}@github.com/${{ inputs['remediation-core-repository'] }}.git" "$REMEDIATION_CORE_DIR"
-          git -C "$REMEDIATION_CORE_DIR" fetch --depth 1 origin "${{ inputs['remediation-core-ref'] }}"
-          git -C "$REMEDIATION_CORE_DIR" checkout --detach FETCH_HEAD
-
       - name: Fetch security workflow helpers
         run: |
           set -euo pipefail
           git clone --no-checkout "https://x-access-token:${GH_TOKEN}@github.com/${{ inputs['security-workflows-repository'] }}.git" "$SECURITY_WORKFLOWS_DIR"
           git -C "$SECURITY_WORKFLOWS_DIR" fetch --depth 1 origin "${{ inputs['security-workflows-ref'] }}"
           git -C "$SECURITY_WORKFLOWS_DIR" checkout --detach FETCH_HEAD
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: /tmp/remediation-core-source/go.mod
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -151,9 +143,14 @@ jobs:
           curl -fsSL "https://github.com/anchore/grype/releases/download/v${grype_version}/grype_${grype_version}_${platform}.tar.gz" \
             | sudo tar -xz -C /usr/local/bin grype
 
-      - name: Build remediation core
-        run: go build -o "$RUNNER_TEMP/remediate" ./cmd/remediate
-        working-directory: /tmp/remediation-core-source
+      - name: Download remediation core CLI
+        run: |
+          set -euo pipefail
+          gh release download "${{ inputs['remediation-core-version'] }}" \
+            --repo "${{ inputs['remediation-core-repository'] }}" \
+            --pattern "${{ inputs['remediation-core-asset'] }}" \
+            --output "$RUNNER_TEMP/remediate"
+          chmod +x "$RUNNER_TEMP/remediate"
 
       - name: Run remediation core
         id: run-core
