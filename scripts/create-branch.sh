@@ -21,5 +21,5 @@ slug() {
 
 branch="$(slug "$prefix")/$(slug "$ecosystem")/$(slug "$dependency")-$(slug "$target")"
 git switch -C "$branch"
-echo "branch=$branch" >> "$GITHUB_OUTPUT"
+echo "branch=$branch" >> "${GITHUB_OUTPUT:-/dev/null}"
 printf '%s\n' "$branch"

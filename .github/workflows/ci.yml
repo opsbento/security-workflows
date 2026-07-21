@@ -23,6 +23,9 @@ jobs:
       - name: Validate shell scripts
         run: bash -n scripts/*.sh
 
+      - name: Shellcheck helper scripts
+        run: shellcheck scripts/*.sh
+
       - name: Validate required workflow files
         run: |
           set -euo pipefail

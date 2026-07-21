@@ -17,7 +17,7 @@ It must not contain package-manager remediation logic or raw Grype parsing logic
 
 ## Current Runtime Model
 
-Caller repositories invoke this repository as a reusable workflow. The workflow downloads the pinned `remediation-core` CLI release, installs Syft and Grype through shared helper scripts, runs the CLI against the caller checkout, then creates or updates a Pull Request when the result is `VERIFIED_UPDATE`.
+Caller repositories invoke this repository as a reusable workflow. The workflow downloads the pinned `remediation-core` CLI release, verifies it against the release `checksums.txt`, installs Syft and Grype through shared helper scripts, runs the CLI against the caller checkout, then creates or updates a Pull Request when the result is `VERIFIED_UPDATE`.
 
 ## Reusable Remediation Workflow
 
@@ -76,7 +76,7 @@ No PR is created for `NO_FINDING`, `SKIPPED`, or `NEEDS_MANUAL_REVIEW`.
 
 ## remediation-core CLI
 
-The workflow downloads a pinned remediation-core CLI release asset. It does not checkout or build remediation-core source during caller repository runs.
+The workflow downloads a pinned remediation-core CLI release asset and verifies its SHA-256 checksum before execution. It does not checkout or build remediation-core source during caller repository runs.
 
 Default asset:
 
