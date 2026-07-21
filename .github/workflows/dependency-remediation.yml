@@ -64,7 +64,7 @@ on:
         type: boolean
         default: false
     secrets:
-      remediation-token:
+      REMEDIATION_TOKEN:
         description: Optional token with contents:write and pull-requests:write.
         required: false
     outputs:
@@ -98,7 +98,7 @@ jobs:
       branch: ${{ steps.branch.outputs.branch }}
       pull-request-url: ${{ steps.pr.outputs['pull-request-url'] }}
     env:
-      GH_TOKEN: ${{ secrets['remediation-token'] || github.token }}
+      GH_TOKEN: ${{ secrets.REMEDIATION_TOKEN || github.token }}
       REMEDIATION_RESULT: /tmp/remediation/result.json
       REMEDIATION_REPORTS: /tmp/remediation/reports
       REMEDIATION_CORE_DIR: /tmp/remediation-core-source
@@ -108,7 +108,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets['remediation-token'] || github.token }}
+          token: ${{ secrets.REMEDIATION_TOKEN || github.token }}
 
       - name: Fetch remediation core
         run: |
