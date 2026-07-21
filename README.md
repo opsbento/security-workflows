@@ -100,6 +100,6 @@ Asset: remediate-linux-amd64
 
 ## Production Pinning
 
-Release branches/tags should pin `remediation-core-version`, `remediation-core-asset`, and `security-workflows-ref` to released versions. Production releases should also pin third-party actions to full commit SHAs.
+Release branches/tags should pin `remediation-core-version`, `remediation-core-asset`, and `security-workflows-ref` to released versions. Third-party GitHub actions are pinned to full commit SHAs with the source major version retained as a comment.
 
 The reusable workflows use Node 24-generation official GitHub actions. Self-hosted runners must be new enough for those action runtimes before adopting the tagged workflow release.
