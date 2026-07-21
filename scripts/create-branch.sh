@@ -22,6 +22,7 @@ slug() {
 
 base_branch="$(slug "$prefix")/$(slug "$ecosystem")/$(slug "$dependency")-$(slug "$target")"
 branch="$base_branch"
+branch_reason="using deterministic remediation branch"
 
 if command -v gh >/dev/null 2>&1; then
   open_count="$(gh pr list --head "$base_branch" --state open --json number --jq 'length')"
@@ -31,9 +32,11 @@ if command -v gh >/dev/null 2>&1; then
     case "$closed_pr_policy" in
       new-branch)
         branch="${base_branch}-run-${GITHUB_RUN_ID:-$(date +%s)}"
+        branch_reason="closed remediation PR exists; using run-specific branch"
         ;;
       reuse-branch)
         branch="$base_branch"
+        branch_reason="closed remediation PR exists; reusing deterministic branch"
         ;;
       fail)
         echo "closed remediation PR already exists for $base_branch" >&2
@@ -44,9 +47,12 @@ if command -v gh >/dev/null 2>&1; then
         exit 1
         ;;
     esac
+  elif [[ "$open_count" != "0" ]]; then
+    branch_reason="open remediation PR exists; refreshing deterministic branch"
   fi
 fi
 
-git switch -C "$branch"
+echo "$branch_reason: $branch" >&2
+git switch --quiet -C "$branch"
 echo "branch=$branch" >> "${GITHUB_OUTPUT:-/dev/null}"
 printf '%s\n' "$branch"

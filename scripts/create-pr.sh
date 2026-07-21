@@ -19,6 +19,7 @@ fi
 
 existing_url="$(gh pr list --head "$branch" --state open --json url --jq '.[0].url // empty')"
 if [[ -n "$existing_url" ]]; then
+  echo "updating existing remediation Pull Request: $existing_url" >&2
   gh pr edit "$existing_url" --title "$title" --body-file "$body_file" >/dev/null
   if [[ -n "$labels" ]] && ! gh pr edit "$existing_url" --add-label "$labels" >/dev/null 2>&1; then
     echo "warning: could not add labels '$labels'; continuing without labels" >&2
@@ -27,6 +28,7 @@ if [[ -n "$existing_url" ]]; then
   exit 0
 fi
 
+echo "creating remediation Pull Request for branch: $branch" >&2
 if ! pr_url="$(gh pr create \
   --head "$branch" \
   --base "${GITHUB_BASE_REF:-$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')}" \
