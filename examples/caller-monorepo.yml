@@ -1,0 +1,23 @@
+name: Dependency Remediation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  frontend:
+    uses: opsbento/security-workflows/.github/workflows/dependency-remediation.yml@v1
+    with:
+      working-directory: frontend
+      ecosystem: npm
+      maximum-updates: 1
+
+  admin:
+    uses: opsbento/security-workflows/.github/workflows/dependency-remediation.yml@v1
+    with:
+      working-directory: apps/admin
+      ecosystem: npm
+      maximum-updates: 1

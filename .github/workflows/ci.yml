@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate shell scripts
+        run: bash -n scripts/*.sh
+
+      - name: Validate required workflow files
+        run: |
+          set -euo pipefail
+          test -f .github/workflows/dependency-remediation.yml
+          test -f .github/workflows/dependency-scan.yml
+          test -f examples/caller-basic.yml
+          test -f examples/caller-custom.yml
+          test -f examples/caller-monorepo.yml

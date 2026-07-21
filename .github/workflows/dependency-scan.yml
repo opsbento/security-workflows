@@ -1,0 +1,59 @@
+name: Dependency Scan
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        required: false
+        type: string
+        default: "."
+      minimum-severity:
+        required: false
+        type: string
+        default: high
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@v4
+
+      - name: Install Syft and Grype
+        run: |
+          set -euo pipefail
+          arch="$(uname -m)"
+          case "$arch" in
+            x86_64) platform="linux_amd64" ;;
+            aarch64|arm64) platform="linux_arm64" ;;
+            *) echo "unsupported architecture: $arch" >&2; exit 1 ;;
+          esac
+          syft_version="1.48.0"
+          grype_version="0.116.0"
+          curl -fsSL "https://github.com/anchore/syft/releases/download/v${syft_version}/syft_${syft_version}_${platform}.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin syft
+          curl -fsSL "https://github.com/anchore/grype/releases/download/v${grype_version}/grype_${grype_version}_${platform}.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin grype
+
+      - name: Generate SBOM and scan
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          syft "dir:${{ inputs.working-directory }}" -o syft-json=reports/sbom.json
+          syft "dir:${{ inputs.working-directory }}" -o cyclonedx-json=reports/sbom.cdx.json
+          grype sbom:reports/sbom.json -o json > reports/findings.json
+          grype sbom:reports/sbom.json --fail-on "${{ inputs.minimum-severity }}"
+
+      - name: Upload scan artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-scan-${{ github.run_id }}
+          path: reports/*

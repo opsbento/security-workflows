@@ -1,0 +1,25 @@
+name: Dependency Remediation
+
+on:
+  workflow_dispatch:
+    inputs:
+      minimum-severity:
+        description: Minimum severity to remediate
+        required: false
+        default: high
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  remediate:
+    uses: opsbento/security-workflows/.github/workflows/dependency-remediation.yml@v1
+    with:
+      working-directory: "."
+      ecosystem: npm
+      minimum-severity: ${{ inputs.minimum-severity || 'high' }}
+      allow-major: false
+      maximum-updates: 1
+      remediation-core-ref: v0.1.0
+      security-workflows-ref: v1.0.0

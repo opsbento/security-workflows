@@ -1,0 +1,241 @@
+name: Dependency Remediation
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: Directory in the caller repository to remediate.
+        required: false
+        type: string
+        default: "."
+      ecosystem:
+        description: Ecosystem to remediate.
+        required: false
+        type: string
+        default: auto
+      minimum-severity:
+        description: Minimum severity selected for remediation.
+        required: false
+        type: string
+        default: high
+      allow-major:
+        description: Allow major dependency updates.
+        required: false
+        type: boolean
+        default: false
+      maximum-updates:
+        description: Maximum dependency updates per run.
+        required: false
+        type: number
+        default: 1
+      remediation-core-repository:
+        description: Repository containing remediation-core source.
+        required: false
+        type: string
+        default: opsbento/remediation-core
+      remediation-core-ref:
+        description: Pinned remediation-core ref or SHA.
+        required: false
+        type: string
+        default: main
+      security-workflows-repository:
+        description: Repository containing workflow helper scripts.
+        required: false
+        type: string
+        default: opsbento/security-workflows
+      security-workflows-ref:
+        description: Pinned security-workflows ref or SHA.
+        required: false
+        type: string
+        default: main
+      branch-prefix:
+        description: Prefix for deterministic remediation branches.
+        required: false
+        type: string
+        default: remediation
+      pr-labels:
+        description: Comma-separated labels for remediation PRs.
+        required: false
+        type: string
+        default: dependencies,security,automated-remediation
+      dry-run:
+        description: Run remediation but do not push or create a PR.
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      remediation-token:
+        description: Optional token with contents:write and pull-requests:write.
+        required: false
+    outputs:
+      status:
+        description: remediation-core result status.
+        value: ${{ jobs.remediate.outputs.status }}
+      branch:
+        description: Deterministic remediation branch.
+        value: ${{ jobs.remediate.outputs.branch }}
+      pull-request-url:
+        description: Pull Request URL when created or updated.
+        value: ${{ jobs.remediate.outputs.pull-request-url }}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: dependency-remediation-${{ github.repository }}-${{ inputs.working-directory }}-${{ inputs.ecosystem }}
+  cancel-in-progress: false
+
+jobs:
+  remediate:
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.result.outputs.status }}
+      branch: ${{ steps.branch.outputs.branch }}
+      pull-request-url: ${{ steps.pr.outputs.pull-request-url }}
+    env:
+      GH_TOKEN: ${{ secrets.remediation-token || github.token }}
+      REMEDIATION_RESULT: ${{ runner.temp }}/remediation/result.json
+      REMEDIATION_REPORTS: ${{ runner.temp }}/remediation/reports
+      REMEDIATION_CORE_DIR: ${{ runner.temp }}/remediation-core-source
+      SECURITY_WORKFLOWS_DIR: ${{ runner.temp }}/security-workflows-source
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.remediation-token || github.token }}
+
+      - name: Fetch remediation core
+        run: |
+          set -euo pipefail
+          git clone --no-checkout "https://x-access-token:${GH_TOKEN}@github.com/${{ inputs.remediation-core-repository }}.git" "$REMEDIATION_CORE_DIR"
+          git -C "$REMEDIATION_CORE_DIR" fetch --depth 1 origin "${{ inputs.remediation-core-ref }}"
+          git -C "$REMEDIATION_CORE_DIR" checkout --detach FETCH_HEAD
+
+      - name: Fetch security workflow helpers
+        run: |
+          set -euo pipefail
+          git clone --no-checkout "https://x-access-token:${GH_TOKEN}@github.com/${{ inputs.security-workflows-repository }}.git" "$SECURITY_WORKFLOWS_DIR"
+          git -C "$SECURITY_WORKFLOWS_DIR" fetch --depth 1 origin "${{ inputs.security-workflows-ref }}"
+          git -C "$SECURITY_WORKFLOWS_DIR" checkout --detach FETCH_HEAD
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ runner.temp }}/remediation-core-source/go.mod
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+
+      - name: Install Syft and Grype
+        run: |
+          set -euo pipefail
+          arch="$(uname -m)"
+          case "$arch" in
+            x86_64) platform="linux_amd64" ;;
+            aarch64|arm64) platform="linux_arm64" ;;
+            *) echo "unsupported architecture: $arch" >&2; exit 1 ;;
+          esac
+          syft_version="1.48.0"
+          grype_version="0.116.0"
+          curl -fsSL "https://github.com/anchore/syft/releases/download/v${syft_version}/syft_${syft_version}_${platform}.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin syft
+          curl -fsSL "https://github.com/anchore/grype/releases/download/v${grype_version}/grype_${grype_version}_${platform}.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin grype
+
+      - name: Build remediation core
+        run: go build -o "$RUNNER_TEMP/remediate" ./cmd/remediate
+        working-directory: ${{ runner.temp }}/remediation-core-source
+
+      - name: Run remediation core
+        id: run-core
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          mkdir -p "$REMEDIATION_REPORTS"
+          "$RUNNER_TEMP/remediate" \
+            --directory "${{ inputs.working-directory }}" \
+            --ecosystem "${{ inputs.ecosystem }}" \
+            --minimum-severity "${{ inputs.minimum-severity }}" \
+            --strategy minimum-safe \
+            --allow-major=${{ inputs.allow-major }} \
+            --maximum-updates ${{ inputs.maximum-updates }} \
+            --artifact-directory "$REMEDIATION_REPORTS" \
+            --output "$REMEDIATION_RESULT"
+
+      - name: Read remediation result
+        id: result
+        run: |
+          set -euo pipefail
+          test -f "$REMEDIATION_RESULT"
+          status="$(jq -r '.status' "$REMEDIATION_RESULT")"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          case "$status" in
+            VERIFIED_UPDATE|NO_FINDING|SKIPPED|NEEDS_MANUAL_REVIEW|FAILED|UNSUPPORTED) ;;
+            *) echo "unknown remediation status: $status" >&2; exit 1 ;;
+          esac
+
+      - name: Upload remediation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-remediation-${{ github.run_id }}
+          path: |
+            ${{ env.REMEDIATION_RESULT }}
+            ${{ env.REMEDIATION_REPORTS }}/*
+          if-no-files-found: warn
+
+      - name: Write job summary
+        if: always()
+        run: "$SECURITY_WORKFLOWS_DIR/scripts/write-job-summary.sh" "$REMEDIATION_RESULT"
+
+      - name: Stop when no PR is needed
+        if: steps.result.outputs.status != 'VERIFIED_UPDATE'
+        run: |
+          echo "No Pull Request will be created for status ${{ steps.result.outputs.status }}."
+
+      - name: Create deterministic branch
+        if: steps.result.outputs.status == 'VERIFIED_UPDATE' && !inputs.dry-run
+        id: branch
+        run: "$SECURITY_WORKFLOWS_DIR/scripts/create-branch.sh" "$REMEDIATION_RESULT" "${{ inputs.branch-prefix }}"
+
+      - name: Commit dependency changes
+        if: steps.result.outputs.status == 'VERIFIED_UPDATE' && !inputs.dry-run
+        run: |
+          set -euo pipefail
+          dependency="$(jq -r '.dependency.name' "$REMEDIATION_RESULT")"
+          from="$(jq -r '.dependency.from' "$REMEDIATION_RESULT")"
+          to="$(jq -r '.dependency.to' "$REMEDIATION_RESULT")"
+          mapfile -t files < <(jq -r '.changed_files[]?' "$REMEDIATION_RESULT")
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No changed files listed in remediation result." >&2
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "${files[@]}"
+          git commit -m "fix(deps): update ${dependency} from ${from} to ${to}"
+
+      - name: Push remediation branch
+        if: steps.result.outputs.status == 'VERIFIED_UPDATE' && !inputs.dry-run
+        run: git push --force-with-lease origin "${{ steps.branch.outputs.branch }}"
+
+      - name: Create or update Pull Request
+        if: steps.result.outputs.status == 'VERIFIED_UPDATE' && !inputs.dry-run
+        id: pr
+        run: |
+          set -euo pipefail
+          pr_url="$("$SECURITY_WORKFLOWS_DIR/scripts/create-pr.sh" "$REMEDIATION_RESULT" "${{ steps.branch.outputs.branch }}" "${{ inputs.pr-labels }}")"
+          echo "pull-request-url=$pr_url" >> "$GITHUB_OUTPUT"
+
+      - name: Fail on core execution failure
+        if: steps.run-core.outcome == 'failure' || steps.result.outputs.status == 'FAILED' || steps.result.outputs.status == 'UNSUPPORTED'
+        run: exit 1

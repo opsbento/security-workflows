@@ -1,0 +1,9 @@
+version: 1
+
+updates:
+  - ecosystem: npm
+    directory: /
+    minimum-severity: high
+    strategy: minimum-safe
+    allow-major: false
+    maximum-updates: 1

@@ -1,0 +1,14 @@
+name: Dependency Remediation
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * 1-5"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  remediate:
+    uses: opsbento/security-workflows/.github/workflows/dependency-remediation.yml@v1
