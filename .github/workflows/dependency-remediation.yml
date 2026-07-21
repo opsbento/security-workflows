@@ -76,7 +76,7 @@ on:
         value: ${{ jobs.remediate.outputs.branch }}
       pull-request-url:
         description: Pull Request URL when created or updated.
-        value: ${{ jobs.remediate.outputs.pull-request-url }}
+        value: ${{ jobs.remediate.outputs['pull-request-url'] }}
 
 permissions:
   contents: write
@@ -87,7 +87,7 @@ defaults:
     shell: bash
 
 concurrency:
-  group: dependency-remediation-${{ github.repository }}-${{ inputs.working-directory }}-${{ inputs.ecosystem }}
+  group: dependency-remediation-${{ github.repository }}-${{ inputs['working-directory'] }}-${{ inputs.ecosystem }}
   cancel-in-progress: false
 
 jobs:
@@ -96,9 +96,9 @@ jobs:
     outputs:
       status: ${{ steps.result.outputs.status }}
       branch: ${{ steps.branch.outputs.branch }}
-      pull-request-url: ${{ steps.pr.outputs.pull-request-url }}
+      pull-request-url: ${{ steps.pr.outputs['pull-request-url'] }}
     env:
-      GH_TOKEN: ${{ secrets.remediation-token || github.token }}
+      GH_TOKEN: ${{ secrets['remediation-token'] || github.token }}
       REMEDIATION_RESULT: ${{ runner.temp }}/remediation/result.json
       REMEDIATION_REPORTS: ${{ runner.temp }}/remediation/reports
       REMEDIATION_CORE_DIR: ${{ runner.temp }}/remediation-core-source
@@ -108,20 +108,20 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.remediation-token || github.token }}
+          token: ${{ secrets['remediation-token'] || github.token }}
 
       - name: Fetch remediation core
         run: |
           set -euo pipefail
-          git clone --no-checkout "https://x-access-token:${GH_TOKEN}@github.com/${{ inputs.remediation-core-repository }}.git" "$REMEDIATION_CORE_DIR"
-          git -C "$REMEDIATION_CORE_DIR" fetch --depth 1 origin "${{ inputs.remediation-core-ref }}"
+          git clone --no-checkout "https://x-access-token:${GH_TOKEN}@github.com/${{ inputs['remediation-core-repository'] }}.git" "$REMEDIATION_CORE_DIR"
+          git -C "$REMEDIATION_CORE_DIR" fetch --depth 1 origin "${{ inputs['remediation-core-ref'] }}"
           git -C "$REMEDIATION_CORE_DIR" checkout --detach FETCH_HEAD
 
       - name: Fetch security workflow helpers
         run: |
           set -euo pipefail
-          git clone --no-checkout "https://x-access-token:${GH_TOKEN}@github.com/${{ inputs.security-workflows-repository }}.git" "$SECURITY_WORKFLOWS_DIR"
-          git -C "$SECURITY_WORKFLOWS_DIR" fetch --depth 1 origin "${{ inputs.security-workflows-ref }}"
+          git clone --no-checkout "https://x-access-token:${GH_TOKEN}@github.com/${{ inputs['security-workflows-repository'] }}.git" "$SECURITY_WORKFLOWS_DIR"
+          git -C "$SECURITY_WORKFLOWS_DIR" fetch --depth 1 origin "${{ inputs['security-workflows-ref'] }}"
           git -C "$SECURITY_WORKFLOWS_DIR" checkout --detach FETCH_HEAD
 
       - name: Set up Go
@@ -162,12 +162,12 @@ jobs:
           set -euo pipefail
           mkdir -p "$REMEDIATION_REPORTS"
           "$RUNNER_TEMP/remediate" \
-            --directory "${{ inputs.working-directory }}" \
+            --directory "${{ inputs['working-directory'] }}" \
             --ecosystem "${{ inputs.ecosystem }}" \
-            --minimum-severity "${{ inputs.minimum-severity }}" \
+            --minimum-severity "${{ inputs['minimum-severity'] }}" \
             --strategy minimum-safe \
-            --allow-major=${{ inputs.allow-major }} \
-            --maximum-updates ${{ inputs.maximum-updates }} \
+            --allow-major=${{ inputs['allow-major'] }} \
+            --maximum-updates ${{ inputs['maximum-updates'] }} \
             --artifact-directory "$REMEDIATION_REPORTS" \
             --output "$REMEDIATION_RESULT"
 
@@ -195,7 +195,8 @@ jobs:
 
       - name: Write job summary
         if: always()
-        run: "$SECURITY_WORKFLOWS_DIR/scripts/write-job-summary.sh" "$REMEDIATION_RESULT"
+        run: |
+          "$SECURITY_WORKFLOWS_DIR/scripts/write-job-summary.sh" "$REMEDIATION_RESULT"
 
       - name: Stop when no PR is needed
         if: steps.result.outputs.status != 'VERIFIED_UPDATE'
@@ -203,12 +204,13 @@ jobs:
           echo "No Pull Request will be created for status ${{ steps.result.outputs.status }}."
 
       - name: Create deterministic branch
-        if: steps.result.outputs.status == 'VERIFIED_UPDATE' && !inputs.dry-run
+        if: steps.result.outputs.status == 'VERIFIED_UPDATE' && inputs['dry-run'] == false
         id: branch
-        run: "$SECURITY_WORKFLOWS_DIR/scripts/create-branch.sh" "$REMEDIATION_RESULT" "${{ inputs.branch-prefix }}"
+        run: |
+          "$SECURITY_WORKFLOWS_DIR/scripts/create-branch.sh" "$REMEDIATION_RESULT" "${{ inputs['branch-prefix'] }}"
 
       - name: Commit dependency changes
-        if: steps.result.outputs.status == 'VERIFIED_UPDATE' && !inputs.dry-run
+        if: steps.result.outputs.status == 'VERIFIED_UPDATE' && inputs['dry-run'] == false
         run: |
           set -euo pipefail
           dependency="$(jq -r '.dependency.name' "$REMEDIATION_RESULT")"
@@ -225,15 +227,15 @@ jobs:
           git commit -m "fix(deps): update ${dependency} from ${from} to ${to}"
 
       - name: Push remediation branch
-        if: steps.result.outputs.status == 'VERIFIED_UPDATE' && !inputs.dry-run
+        if: steps.result.outputs.status == 'VERIFIED_UPDATE' && inputs['dry-run'] == false
         run: git push --force-with-lease origin "${{ steps.branch.outputs.branch }}"
 
       - name: Create or update Pull Request
-        if: steps.result.outputs.status == 'VERIFIED_UPDATE' && !inputs.dry-run
+        if: steps.result.outputs.status == 'VERIFIED_UPDATE' && inputs['dry-run'] == false
         id: pr
         run: |
           set -euo pipefail
-          pr_url="$("$SECURITY_WORKFLOWS_DIR/scripts/create-pr.sh" "$REMEDIATION_RESULT" "${{ steps.branch.outputs.branch }}" "${{ inputs.pr-labels }}")"
+          pr_url="$("$SECURITY_WORKFLOWS_DIR/scripts/create-pr.sh" "$REMEDIATION_RESULT" "${{ steps.branch.outputs.branch }}" "${{ inputs['pr-labels'] }}")"
           echo "pull-request-url=$pr_url" >> "$GITHUB_OUTPUT"
 
       - name: Fail on core execution failure
