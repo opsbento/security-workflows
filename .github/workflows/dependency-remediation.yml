@@ -192,6 +192,30 @@ jobs:
         run: |
           echo "No Pull Request will be created for status ${{ steps.result.outputs.status }}."
 
+      - name: Write dry-run summary
+        if: steps.result.outputs.status == 'VERIFIED_UPDATE' && inputs['dry-run'] == true
+        run: |
+          set -euo pipefail
+          dependency="$(jq -r '.dependency.name' "$REMEDIATION_RESULT")"
+          from="$(jq -r '.dependency.from' "$REMEDIATION_RESULT")"
+          to="$(jq -r '.dependency.to' "$REMEDIATION_RESULT")"
+          {
+            echo
+            echo "## Dry-run result"
+            echo
+            echo "Remediation produced a verified update, but dry-run mode skipped branch push and Pull Request creation."
+            echo
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Dependency | \`$dependency\` |"
+            echo "| From | \`$from\` |"
+            echo "| To | \`$to\` |"
+            echo
+            echo "### Changed files"
+            echo
+            jq -r '.changed_files[]? | "- `\(.)`"' "$REMEDIATION_RESULT"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Create deterministic branch
         if: steps.result.outputs.status == 'VERIFIED_UPDATE' && inputs['dry-run'] == false
         id: branch

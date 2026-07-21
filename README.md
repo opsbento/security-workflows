@@ -64,6 +64,8 @@ Pull Request creation requires either:
 - repository setting enabled: `Settings > Actions > General > Workflow permissions > Allow GitHub Actions to create and approve pull requests`; or
 - a fine-grained PAT stored and passed as `REMEDIATION_TOKEN`.
 
+Set `dry-run: true` to run remediation and publish artifacts without pushing a branch or creating a Pull Request. When remediation produces a verified update, the job summary lists the dependency update and changed files that would have been used.
+
 ## Pull Request Behavior
 
 When remediation-core returns `VERIFIED_UPDATE`, the workflow:
