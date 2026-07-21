@@ -22,6 +22,6 @@ jobs:
       ecosystem: npm
       minimum-severity: ${{ inputs.minimum-severity || 'high' }}
       allow-major: false
-      maximum-updates: 1
-      remediation-core-version: v0.1.1
+      maximum-updates: 5
+      remediation-core-version: v0.2.0
       security-workflows-ref: v1.0.0

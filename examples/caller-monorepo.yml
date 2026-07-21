@@ -15,7 +15,7 @@ jobs:
     with:
       working-directory: frontend
       ecosystem: npm
-      maximum-updates: 1
+      maximum-updates: 5
 
   admin:
     uses: opsbento/security-workflows/.github/workflows/dependency-remediation.yml@v1
@@ -24,4 +24,4 @@ jobs:
     with:
       working-directory: apps/admin
       ecosystem: npm
-      maximum-updates: 1
+      maximum-updates: 5

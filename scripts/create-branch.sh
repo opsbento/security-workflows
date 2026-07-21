@@ -5,13 +5,12 @@ result_file="${1:?result json path is required}"
 prefix="${2:-remediation}"
 closed_pr_policy="${3:-new-branch}"
 
-dependency="$(jq -r '.dependency.name' "$result_file")"
 ecosystem="$(jq -r '.ecosystem' "$result_file")"
-target="$(jq -r '.dependency.to' "$result_file")"
+dependency_count="$(jq -r '(.dependencies // [ .dependency ] | map(select(. != null)) | length)' "$result_file")"
 
-if [[ -z "$dependency" || "$dependency" == "null" || -z "$target" || "$target" == "null" ]]; then
-  echo "remediation result does not contain dependency target" >&2
-  exit 1
+if [[ "$dependency_count" == "0" ]]; then
+	echo "remediation result does not contain dependency target" >&2
+	exit 1
 fi
 
 slug() {
@@ -20,7 +19,14 @@ slug() {
     | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//'
 }
 
-base_branch="$(slug "$prefix")/$(slug "$ecosystem")/$(slug "$dependency")-$(slug "$target")"
+if [[ "$dependency_count" == "1" ]]; then
+	dependency="$(jq -r '(.dependencies // [ .dependency ] | map(select(. != null)))[0].name' "$result_file")"
+	target="$(jq -r '(.dependencies // [ .dependency ] | map(select(. != null)))[0].to' "$result_file")"
+	base_branch="$(slug "$prefix")/$(slug "$ecosystem")/$(slug "$dependency")-$(slug "$target")"
+else
+	dependencies_slug="$(jq -r '(.dependencies // [ .dependency ] | map(select(. != null)) | map(.name) | sort | join("-"))' "$result_file")"
+	base_branch="$(slug "$prefix")/$(slug "$ecosystem")/batch-$(slug "$dependencies_slug")"
+fi
 branch="$base_branch"
 branch_reason="using deterministic remediation branch"
 

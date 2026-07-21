@@ -27,15 +27,14 @@ directory="$(jq -r '.directory // "n/a"' "$result_file")"
   echo "| Directory | \`$directory\` |"
 } >> "$summary_file"
 
-if jq -e '.dependency != null' "$result_file" >/dev/null; then
-  dependency="$(jq -r '.dependency.name' "$result_file")"
-  from="$(jq -r '.dependency.from' "$result_file")"
-  to="$(jq -r '.dependency.to' "$result_file")"
+if jq -e '(.dependencies // [ .dependency ] | map(select(. != null)) | length) > 0' "$result_file" >/dev/null; then
   {
     echo
-    echo "### Dependency"
+    echo "### Dependencies"
     echo
-    echo "\`$dependency\`: \`$from\` -> \`$to\`"
+    echo "| Dependency | From | To |"
+    echo "|---|---:|---:|"
+    jq -r '(.dependencies // [ .dependency ] | map(select(. != null)))[] | "| `\(.name)` | `\(.from)` | `\(.to)` |"' "$result_file"
   } >> "$summary_file"
 fi
 

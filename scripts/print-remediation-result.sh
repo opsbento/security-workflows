@@ -13,8 +13,9 @@ echo "status=$(jq -r '.status' "$result_file")"
 echo "ecosystem=$(jq -r '.ecosystem // "n/a"' "$result_file")"
 echo "directory=$(jq -r '.directory // "n/a"' "$result_file")"
 
-if jq -e '.dependency != null' "$result_file" >/dev/null; then
-  jq -r '"dependency=\(.dependency.name) \(.dependency.from) -> \(.dependency.to)"' "$result_file"
+if jq -e '(.dependencies // [ .dependency ] | map(select(. != null)) | length) > 0' "$result_file" >/dev/null; then
+  echo "dependencies:"
+  jq -r '(.dependencies // [ .dependency ] | map(select(. != null)))[] | "- \(.name) \(.from) -> \(.to)"' "$result_file"
 fi
 
 if jq -e '.vulnerabilities | length > 0' "$result_file" >/dev/null; then

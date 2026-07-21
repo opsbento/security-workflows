@@ -27,7 +27,7 @@ on:
         description: Maximum dependency updates per run.
         required: false
         type: number
-        default: 1
+        default: 5
       remediation-core-repository:
         description: Repository containing remediation-core CLI releases.
         required: false
@@ -37,7 +37,7 @@ on:
         description: Pinned remediation-core release tag.
         required: false
         type: string
-        default: v0.1.1
+        default: v0.2.0
       remediation-core-asset:
         description: remediation-core release asset to download.
         required: false
@@ -206,9 +206,6 @@ jobs:
         if: steps.result.outputs.status == 'VERIFIED_UPDATE' && inputs['dry-run'] == true
         run: |
           set -euo pipefail
-          dependency="$(jq -r '.dependency.name' "$REMEDIATION_RESULT")"
-          from="$(jq -r '.dependency.from' "$REMEDIATION_RESULT")"
-          to="$(jq -r '.dependency.to' "$REMEDIATION_RESULT")"
           {
             echo
             echo "## Dry-run result"
@@ -217,9 +214,13 @@ jobs:
             echo
             echo "| Field | Value |"
             echo "|---|---|"
-            echo "| Dependency | \`$dependency\` |"
-            echo "| From | \`$from\` |"
-            echo "| To | \`$to\` |"
+            echo "| Updates | \`$(jq -r '(.dependencies // [ .dependency ] | map(select(. != null)) | length)' "$REMEDIATION_RESULT")\` |"
+            echo
+            echo "### Dependency updates"
+            echo
+            echo "| Dependency | From | To |"
+            echo "|---|---:|---:|"
+            jq -r '(.dependencies // [ .dependency ] | map(select(. != null)))[] | "| `\(.name)` | `\(.from)` | `\(.to)` |"' "$REMEDIATION_RESULT"
             echo
             echo "### Changed files"
             echo

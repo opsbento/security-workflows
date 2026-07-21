@@ -6,10 +6,15 @@ branch="${2:?branch name is required}"
 labels="${3:-dependencies,security,automated-remediation}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-dependency="$(jq -r '.dependency.name' "$result_file")"
-from="$(jq -r '.dependency.from' "$result_file")"
-to="$(jq -r '.dependency.to' "$result_file")"
-title="Update ${dependency} from ${from} to ${to}"
+dependency_count="$(jq -r '(.dependencies // [ .dependency ] | map(select(. != null)) | length)' "$result_file")"
+if [[ "$dependency_count" == "1" ]]; then
+  dependency="$(jq -r '(.dependencies // [ .dependency ] | map(select(. != null)))[0].name' "$result_file")"
+  from="$(jq -r '(.dependencies // [ .dependency ] | map(select(. != null)))[0].from' "$result_file")"
+  to="$(jq -r '(.dependencies // [ .dependency ] | map(select(. != null)))[0].to' "$result_file")"
+  title="Update ${dependency} from ${from} to ${to}"
+else
+  title="Update ${dependency_count} dependencies"
+fi
 body_file="$(mktemp)"
 "$script_dir/generate-pr-body.sh" "$result_file" > "$body_file"
 label_args=()
