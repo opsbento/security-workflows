@@ -10,7 +10,8 @@ This repository is responsible for provider orchestration only:
 - create deterministic branches;
 - commit dependency file changes;
 - create or update Pull Requests;
-- upload SBOM and scan artifacts;
+- print remediation and scan results to logs and job summaries;
+- optionally upload SBOM and scan artifacts;
 - write GitHub job summaries.
 
 It must not contain package-manager remediation logic or raw Grype parsing logic.
@@ -57,6 +58,7 @@ jobs:
       remediation-core-version: v0.1.1
       security-workflows-ref: v1.0.0
       closed-pr-policy: new-branch
+      upload-artifacts: false
 ```
 
 Pull Request creation requires either:
@@ -64,7 +66,9 @@ Pull Request creation requires either:
 - repository setting enabled: `Settings > Actions > General > Workflow permissions > Allow GitHub Actions to create and approve pull requests`; or
 - a fine-grained PAT stored and passed as `REMEDIATION_TOKEN`.
 
-Set `dry-run: true` to run remediation and publish artifacts without pushing a branch or creating a Pull Request. When remediation produces a verified update, the job summary lists the dependency update and changed files that would have been used.
+Set `dry-run: true` to run remediation without pushing a branch or creating a Pull Request. When remediation produces a verified update, the job summary lists the dependency update and changed files that would have been used.
+
+By default, workflows print result summaries to logs and job summaries instead of uploading artifacts. Set `upload-artifacts: true` when full JSON, SBOM, or Grype reports must be retained as workflow artifacts.
 
 ## Pull Request Behavior
 
@@ -73,7 +77,7 @@ When remediation-core returns `VERIFIED_UPDATE`, the workflow:
 1. creates a deterministic branch named `remediation/<ecosystem>/<dependency>-<target-version>`;
 2. commits only files listed by remediation-core in `changed_files`;
 3. creates or updates one open Pull Request for that branch;
-4. uploads before/after SBOM and Grype reports.
+4. prints remediation evidence to logs and job summaries.
 
 If that deterministic branch only has a closed PR, the default `closed-pr-policy: new-branch` creates a run-suffixed branch for the new remediation attempt. `reuse-branch` keeps the original branch behavior, and `fail` stops the workflow.
 

@@ -11,6 +11,10 @@ on:
         required: false
         type: string
         default: high
+      upload-artifacts:
+        required: false
+        type: boolean
+        default: false
       security-workflows-repository:
         required: false
         type: string
@@ -48,12 +52,23 @@ jobs:
           "$SECURITY_WORKFLOWS_DIR/scripts/install-anchore-tools.sh"
 
       - name: Generate SBOM and scan
+        id: scan
+        continue-on-error: true
         run: |
           "$SECURITY_WORKFLOWS_DIR/scripts/run-dependency-scan.sh" "${{ inputs['working-directory'] }}" "${{ inputs['minimum-severity'] }}" reports
 
-      - name: Upload scan artifacts
+      - name: Print scan result
         if: always()
+        run: |
+          "$SECURITY_WORKFLOWS_DIR/scripts/print-dependency-scan.sh" reports/findings.json
+
+      - name: Upload scan artifacts
+        if: always() && inputs['upload-artifacts'] == true
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dependency-scan-${{ github.run_id }}
           path: reports/*
+
+      - name: Fail on scan threshold
+        if: steps.scan.outcome == 'failure'
+        run: exit 1

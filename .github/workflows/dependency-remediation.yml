@@ -68,6 +68,11 @@ on:
         required: false
         type: boolean
         default: false
+      upload-artifacts:
+        description: Upload remediation JSON/SBOM reports as workflow artifacts.
+        required: false
+        type: boolean
+        default: false
       closed-pr-policy:
         description: "Behavior when an unmerged remediation PR for the deterministic branch was closed. Supported values: new-branch, reuse-branch, fail."
         required: false
@@ -173,7 +178,7 @@ jobs:
           esac
 
       - name: Upload remediation artifacts
-        if: always()
+        if: always() && inputs['upload-artifacts'] == true
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dependency-remediation-${{ github.run_id }}
@@ -186,6 +191,11 @@ jobs:
         if: always()
         run: |
           "$SECURITY_WORKFLOWS_DIR/scripts/write-job-summary.sh" "$REMEDIATION_RESULT"
+
+      - name: Print remediation result
+        if: always()
+        run: |
+          "$SECURITY_WORKFLOWS_DIR/scripts/print-remediation-result.sh" "$REMEDIATION_RESULT"
 
       - name: Stop when no PR is needed
         if: steps.result.outputs.status != 'VERIFIED_UPDATE'
