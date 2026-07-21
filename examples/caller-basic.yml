@@ -12,3 +12,5 @@ permissions:
 jobs:
   remediate:
     uses: opsbento/security-workflows/.github/workflows/dependency-remediation.yml@v1
+    secrets:
+      REMEDIATION_TOKEN: ${{ secrets.REMEDIATION_TOKEN }}

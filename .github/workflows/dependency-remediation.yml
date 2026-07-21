@@ -133,12 +133,11 @@ jobs:
 
       - name: Download remediation core CLI
         run: |
-          set -euo pipefail
-          gh release download "${{ inputs['remediation-core-version'] }}" \
-            --repo "${{ inputs['remediation-core-repository'] }}" \
-            --pattern "${{ inputs['remediation-core-asset'] }}" \
-            --output "$RUNNER_TEMP/remediate"
-          chmod +x "$RUNNER_TEMP/remediate"
+          "$SECURITY_WORKFLOWS_DIR/scripts/download-remediation-core.sh" \
+            "${{ inputs['remediation-core-repository'] }}" \
+            "${{ inputs['remediation-core-version'] }}" \
+            "${{ inputs['remediation-core-asset'] }}" \
+            "$RUNNER_TEMP/remediate"
 
       - name: Run remediation core
         id: run-core
@@ -197,19 +196,7 @@ jobs:
       - name: Commit dependency changes
         if: steps.result.outputs.status == 'VERIFIED_UPDATE' && inputs['dry-run'] == false
         run: |
-          set -euo pipefail
-          dependency="$(jq -r '.dependency.name' "$REMEDIATION_RESULT")"
-          from="$(jq -r '.dependency.from' "$REMEDIATION_RESULT")"
-          to="$(jq -r '.dependency.to' "$REMEDIATION_RESULT")"
-          mapfile -t files < <(jq -r '.changed_files[]?' "$REMEDIATION_RESULT")
-          if [ "${#files[@]}" -eq 0 ]; then
-            echo "No changed files listed in remediation result." >&2
-            exit 1
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- "${files[@]}"
-          git commit -m "fix(deps): update ${dependency} from ${from} to ${to}"
+          "$SECURITY_WORKFLOWS_DIR/scripts/commit-dependency-changes.sh" "$REMEDIATION_RESULT"
 
       - name: Push remediation branch
         if: steps.result.outputs.status == 'VERIFIED_UPDATE' && inputs['dry-run'] == false

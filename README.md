@@ -5,7 +5,7 @@ Centralized reusable GitHub workflows for dependency scanning and remediation.
 This repository is responsible for provider orchestration only:
 
 - checkout caller repositories;
-- run pinned remediation-core;
+- download and run pinned remediation-core CLI releases;
 - read `result.json`;
 - create deterministic branches;
 - commit dependency file changes;
@@ -14,6 +14,10 @@ This repository is responsible for provider orchestration only:
 - write GitHub job summaries.
 
 It must not contain package-manager remediation logic or raw Grype parsing logic.
+
+## Current Runtime Model
+
+Caller repositories invoke this repository as a reusable workflow. The workflow downloads the pinned `remediation-core` CLI release, installs Syft and Grype through shared helper scripts, runs the CLI against the caller checkout, then creates or updates a Pull Request when the result is `VERIFIED_UPDATE`.
 
 ## Reusable Remediation Workflow
 
@@ -86,7 +90,8 @@ Asset: remediate-linux-amd64
 
 | Security Workflows | Remediation Core | Status |
 | --- | --- | --- |
-| v1.0.0 | v0.1.1 | Planned |
+| main | v0.1.1 | Active demo |
+| v1.0.0 | v0.1.1 | Planned release |
 
 ## Production Pinning
 

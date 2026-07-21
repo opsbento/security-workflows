@@ -10,6 +10,8 @@ permissions:
 jobs:
   frontend:
     uses: opsbento/security-workflows/.github/workflows/dependency-remediation.yml@v1
+    secrets:
+      REMEDIATION_TOKEN: ${{ secrets.REMEDIATION_TOKEN }}
     with:
       working-directory: frontend
       ecosystem: npm
@@ -17,6 +19,8 @@ jobs:
 
   admin:
     uses: opsbento/security-workflows/.github/workflows/dependency-remediation.yml@v1
+    secrets:
+      REMEDIATION_TOKEN: ${{ secrets.REMEDIATION_TOKEN }}
     with:
       working-directory: apps/admin
       ecosystem: npm
