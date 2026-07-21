@@ -5,6 +5,7 @@ result_file="${1:?result json path is required}"
 
 removed="$(jq -r '.verification.target_findings_removed' "$result_file")"
 new_critical="$(jq -r '.verification.new_critical_findings' "$result_file")"
+new_threshold="$(jq -r '.verification.new_threshold_findings // 0' "$result_file")"
 files_valid="$(jq -r '.verification.dependency_files_valid' "$result_file")"
 dependency_count="$(jq -r '(.dependencies // [ .dependency ] | map(select(. != null)) | length)' "$result_file")"
 dependency_noun="dependency"
@@ -44,6 +45,7 @@ Each target version is the minimum available version selected by remediation-cor
 ### Verification
 
 - Target findings removed: \`$removed\`
+- New threshold findings: \`$new_threshold\`
 - New Critical findings: \`$new_critical\`
 - Dependency files valid: \`$files_valid\`
 
