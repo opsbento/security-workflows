@@ -42,6 +42,8 @@ Optional inputs:
 jobs:
   remediate:
     uses: opsbento/security-workflows/.github/workflows/dependency-remediation.yml@v1
+    secrets:
+      remediation-token: ${{ secrets.REMEDIATION_TOKEN }}
     with:
       working-directory: "."
       ecosystem: npm
@@ -51,6 +53,11 @@ jobs:
       remediation-core-ref: v0.1.0
       security-workflows-ref: v1.0.0
 ```
+
+Pull Request creation requires either:
+
+- repository setting enabled: `Settings > Actions > General > Workflow permissions > Allow GitHub Actions to create and approve pull requests`; or
+- a fine-grained PAT stored as `REMEDIATION_TOKEN` and passed to `remediation-token`.
 
 ## Pull Request Behavior
 

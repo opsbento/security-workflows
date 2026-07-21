@@ -32,15 +32,27 @@ if ! pr_url="$(gh pr create \
   --base "${GITHUB_BASE_REF:-$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')}" \
   --title "$title" \
   --body-file "$body_file" \
-  "${label_args[@]}")"; then
+  "${label_args[@]}" 2>&1)"; then
   if [[ -n "$labels" ]]; then
     echo "warning: could not create PR with labels '$labels'; retrying without labels" >&2
-    pr_url="$(gh pr create \
+    if ! pr_url="$(gh pr create \
       --head "$branch" \
       --base "${GITHUB_BASE_REF:-$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')}" \
       --title "$title" \
-      --body-file "$body_file")"
+      --body-file "$body_file" 2>&1)"; then
+      echo "$pr_url" >&2
+      if grep -qi "GitHub Actions is not permitted to create or approve pull requests" <<<"$pr_url"; then
+        echo "GitHub Actions cannot create Pull Requests for this repository." >&2
+        echo "Enable Settings > Actions > General > Workflow permissions > Allow GitHub Actions to create and approve pull requests, or pass a PAT as secrets.REMEDIATION_TOKEN from the caller workflow." >&2
+      fi
+      exit 1
+    fi
   else
+    echo "$pr_url" >&2
+    if grep -qi "GitHub Actions is not permitted to create or approve pull requests" <<<"$pr_url"; then
+      echo "GitHub Actions cannot create Pull Requests for this repository." >&2
+      echo "Enable Settings > Actions > General > Workflow permissions > Allow GitHub Actions to create and approve pull requests, or pass a PAT as secrets.REMEDIATION_TOKEN from the caller workflow." >&2
+    fi
     exit 1
   fi
 fi
