@@ -68,6 +68,11 @@ on:
         required: false
         type: boolean
         default: false
+      closed-pr-policy:
+        description: "Behavior when an unmerged remediation PR for the deterministic branch was closed. Supported values: new-branch, reuse-branch, fail."
+        required: false
+        type: string
+        default: new-branch
     secrets:
       REMEDIATION_TOKEN:
         description: Optional token with contents:write and pull-requests:write.
@@ -77,7 +82,7 @@ on:
         description: remediation-core result status.
         value: ${{ jobs.remediate.outputs.status }}
       branch:
-        description: Deterministic remediation branch.
+        description: Remediation branch.
         value: ${{ jobs.remediate.outputs.branch }}
       pull-request-url:
         description: Pull Request URL when created or updated.
@@ -191,7 +196,10 @@ jobs:
         if: steps.result.outputs.status == 'VERIFIED_UPDATE' && inputs['dry-run'] == false
         id: branch
         run: |
-          "$SECURITY_WORKFLOWS_DIR/scripts/create-branch.sh" "$REMEDIATION_RESULT" "${{ inputs['branch-prefix'] }}"
+          "$SECURITY_WORKFLOWS_DIR/scripts/create-branch.sh" \
+            "$REMEDIATION_RESULT" \
+            "${{ inputs['branch-prefix'] }}" \
+            "${{ inputs['closed-pr-policy'] }}"
 
       - name: Commit dependency changes
         if: steps.result.outputs.status == 'VERIFIED_UPDATE' && inputs['dry-run'] == false

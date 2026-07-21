@@ -56,6 +56,7 @@ jobs:
       maximum-updates: 1
       remediation-core-version: v0.1.1
       security-workflows-ref: v1.0.0
+      closed-pr-policy: new-branch
 ```
 
 Pull Request creation requires either:
@@ -71,6 +72,8 @@ When remediation-core returns `VERIFIED_UPDATE`, the workflow:
 2. commits only files listed by remediation-core in `changed_files`;
 3. creates or updates one open Pull Request for that branch;
 4. uploads before/after SBOM and Grype reports.
+
+If that deterministic branch only has a closed PR, the default `closed-pr-policy: new-branch` creates a run-suffixed branch for the new remediation attempt. `reuse-branch` keeps the original branch behavior, and `fail` stops the workflow.
 
 No PR is created for `NO_FINDING`, `SKIPPED`, or `NEEDS_MANUAL_REVIEW`.
 

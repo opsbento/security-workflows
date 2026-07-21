@@ -3,6 +3,7 @@ set -euo pipefail
 
 result_file="${1:?result json path is required}"
 prefix="${2:-remediation}"
+closed_pr_policy="${3:-new-branch}"
 
 dependency="$(jq -r '.dependency.name' "$result_file")"
 ecosystem="$(jq -r '.ecosystem' "$result_file")"
@@ -19,7 +20,33 @@ slug() {
     | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//'
 }
 
-branch="$(slug "$prefix")/$(slug "$ecosystem")/$(slug "$dependency")-$(slug "$target")"
+base_branch="$(slug "$prefix")/$(slug "$ecosystem")/$(slug "$dependency")-$(slug "$target")"
+branch="$base_branch"
+
+if command -v gh >/dev/null 2>&1; then
+  open_count="$(gh pr list --head "$base_branch" --state open --json number --jq 'length')"
+  closed_count="$(gh pr list --head "$base_branch" --state closed --json number --jq 'length')"
+
+  if [[ "$open_count" == "0" && "$closed_count" != "0" ]]; then
+    case "$closed_pr_policy" in
+      new-branch)
+        branch="${base_branch}-run-${GITHUB_RUN_ID:-$(date +%s)}"
+        ;;
+      reuse-branch)
+        branch="$base_branch"
+        ;;
+      fail)
+        echo "closed remediation PR already exists for $base_branch" >&2
+        exit 1
+        ;;
+      *)
+        echo "unsupported closed PR policy: $closed_pr_policy" >&2
+        exit 1
+        ;;
+    esac
+  fi
+fi
+
 git switch -C "$branch"
 echo "branch=$branch" >> "${GITHUB_OUTPUT:-/dev/null}"
 printf '%s\n' "$branch"
