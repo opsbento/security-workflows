@@ -11,6 +11,14 @@ on:
         required: false
         type: string
         default: high
+      security-workflows-repository:
+        required: false
+        type: string
+        default: opsbento/security-workflows
+      security-workflows-ref:
+        required: false
+        type: string
+        default: main
 
 permissions:
   contents: read
@@ -22,34 +30,26 @@ defaults:
 jobs:
   scan:
     runs-on: ubuntu-latest
+    env:
+      SECURITY_WORKFLOWS_DIR: /tmp/security-workflows-source
     steps:
       - name: Checkout caller repository
         uses: actions/checkout@v4
 
-      - name: Install Syft and Grype
+      - name: Fetch security workflow helpers
         run: |
           set -euo pipefail
-          arch="$(uname -m)"
-          case "$arch" in
-            x86_64) platform="linux_amd64" ;;
-            aarch64|arm64) platform="linux_arm64" ;;
-            *) echo "unsupported architecture: $arch" >&2; exit 1 ;;
-          esac
-          syft_version="1.48.0"
-          grype_version="0.116.0"
-          curl -fsSL "https://github.com/anchore/syft/releases/download/v${syft_version}/syft_${syft_version}_${platform}.tar.gz" \
-            | sudo tar -xz -C /usr/local/bin syft
-          curl -fsSL "https://github.com/anchore/grype/releases/download/v${grype_version}/grype_${grype_version}_${platform}.tar.gz" \
-            | sudo tar -xz -C /usr/local/bin grype
+          git clone --no-checkout "https://github.com/${{ inputs['security-workflows-repository'] }}.git" "$SECURITY_WORKFLOWS_DIR"
+          git -C "$SECURITY_WORKFLOWS_DIR" fetch --depth 1 origin "${{ inputs['security-workflows-ref'] }}"
+          git -C "$SECURITY_WORKFLOWS_DIR" checkout --detach FETCH_HEAD
+
+      - name: Install Syft and Grype
+        run: |
+          "$SECURITY_WORKFLOWS_DIR/scripts/install-anchore-tools.sh"
 
       - name: Generate SBOM and scan
         run: |
-          set -euo pipefail
-          mkdir -p reports
-          syft "dir:${{ inputs.working-directory }}" -o syft-json=reports/sbom.json
-          syft "dir:${{ inputs.working-directory }}" -o cyclonedx-json=reports/sbom.cdx.json
-          grype sbom:reports/sbom.json -o json > reports/findings.json
-          grype sbom:reports/sbom.json --fail-on "${{ inputs.minimum-severity }}"
+          "$SECURITY_WORKFLOWS_DIR/scripts/run-dependency-scan.sh" "${{ inputs['working-directory'] }}" "${{ inputs['minimum-severity'] }}" reports
 
       - name: Upload scan artifacts
         if: always()

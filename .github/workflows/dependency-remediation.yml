@@ -37,7 +37,7 @@ on:
         description: Pinned remediation-core release tag.
         required: false
         type: string
-        default: v0.1.0
+        default: v0.1.1
       remediation-core-asset:
         description: remediation-core release asset to download.
         required: false
@@ -129,19 +129,7 @@ jobs:
 
       - name: Install Syft and Grype
         run: |
-          set -euo pipefail
-          arch="$(uname -m)"
-          case "$arch" in
-            x86_64) platform="linux_amd64" ;;
-            aarch64|arm64) platform="linux_arm64" ;;
-            *) echo "unsupported architecture: $arch" >&2; exit 1 ;;
-          esac
-          syft_version="1.48.0"
-          grype_version="0.116.0"
-          curl -fsSL "https://github.com/anchore/syft/releases/download/v${syft_version}/syft_${syft_version}_${platform}.tar.gz" \
-            | sudo tar -xz -C /usr/local/bin syft
-          curl -fsSL "https://github.com/anchore/grype/releases/download/v${grype_version}/grype_${grype_version}_${platform}.tar.gz" \
-            | sudo tar -xz -C /usr/local/bin grype
+          "$SECURITY_WORKFLOWS_DIR/scripts/install-anchore-tools.sh"
 
       - name: Download remediation core CLI
         run: |

@@ -50,7 +50,7 @@ jobs:
       minimum-severity: high
       allow-major: false
       maximum-updates: 1
-      remediation-core-version: v0.1.0
+      remediation-core-version: v0.1.1
       security-workflows-ref: v1.0.0
 ```
 
@@ -78,7 +78,7 @@ Default asset:
 
 ```text
 ghcr.io is not required.
-GitHub Release: opsbento/remediation-core v0.1.0
+GitHub Release: opsbento/remediation-core v0.1.1
 Asset: remediate-linux-amd64
 ```
 
@@ -86,7 +86,7 @@ Asset: remediate-linux-amd64
 
 | Security Workflows | Remediation Core | Status |
 | --- | --- | --- |
-| v1.0.0 | v0.1.0 | Planned |
+| v1.0.0 | v0.1.1 | Planned |
 
 ## Production Pinning
 
