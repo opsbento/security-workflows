@@ -99,10 +99,10 @@ jobs:
       pull-request-url: ${{ steps.pr.outputs['pull-request-url'] }}
     env:
       GH_TOKEN: ${{ secrets['remediation-token'] || github.token }}
-      REMEDIATION_RESULT: ${{ runner.temp }}/remediation/result.json
-      REMEDIATION_REPORTS: ${{ runner.temp }}/remediation/reports
-      REMEDIATION_CORE_DIR: ${{ runner.temp }}/remediation-core-source
-      SECURITY_WORKFLOWS_DIR: ${{ runner.temp }}/security-workflows-source
+      REMEDIATION_RESULT: /tmp/remediation/result.json
+      REMEDIATION_REPORTS: /tmp/remediation/reports
+      REMEDIATION_CORE_DIR: /tmp/remediation-core-source
+      SECURITY_WORKFLOWS_DIR: /tmp/security-workflows-source
     steps:
       - name: Checkout caller repository
         uses: actions/checkout@v4
@@ -127,7 +127,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: ${{ runner.temp }}/remediation-core-source/go.mod
+          go-version-file: /tmp/remediation-core-source/go.mod
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -153,7 +153,7 @@ jobs:
 
       - name: Build remediation core
         run: go build -o "$RUNNER_TEMP/remediate" ./cmd/remediate
-        working-directory: ${{ runner.temp }}/remediation-core-source
+        working-directory: /tmp/remediation-core-source
 
       - name: Run remediation core
         id: run-core
