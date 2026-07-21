@@ -19,8 +19,16 @@ fi
 
 echo "vulnerabilities:"
 jq -r '
+  def rank($s):
+    ($s | ascii_downcase) as $v
+    | if $v == "critical" then 4
+      elif $v == "high" then 3
+      elif $v == "medium" then 2
+      elif $v == "low" then 1
+      else 0
+      end;
   .matches
-  | sort_by(.vulnerability.severity, .artifact.name, .vulnerability.id)
+  | sort_by(rank(.vulnerability.severity), .artifact.name, .vulnerability.id)
   | reverse
   | .[:50]
   | .[]
