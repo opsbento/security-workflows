@@ -37,7 +37,7 @@ on:
         description: Pinned remediation-core release tag.
         required: false
         type: string
-        default: v0.2.1
+        default: v0.2.2
       remediation-core-asset:
         description: remediation-core release asset to download.
         required: false
