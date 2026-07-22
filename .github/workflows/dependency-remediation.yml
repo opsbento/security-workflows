@@ -27,7 +27,7 @@ on:
         description: Maximum dependency updates per run.
         required: false
         type: number
-        default: 5
+        default: 25
       remediation-core-repository:
         description: Repository containing remediation-core CLI releases.
         required: false
@@ -37,7 +37,7 @@ on:
         description: Pinned remediation-core release tag.
         required: false
         type: string
-        default: v0.2.5
+        default: v0.2.6
       remediation-core-asset:
         description: remediation-core release asset to download.
         required: false

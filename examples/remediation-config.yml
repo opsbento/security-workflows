@@ -6,4 +6,4 @@ updates:
     minimum-severity: high
     strategy: minimum-safe
     allow-major: false
-    maximum-updates: 5
+    maximum-updates: 25

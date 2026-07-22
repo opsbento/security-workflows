@@ -54,8 +54,8 @@ jobs:
       ecosystem: npm
       minimum-severity: high
       allow-major: false
-      maximum-updates: 5
-      remediation-core-version: v0.2.5
+      maximum-updates: 25
+      remediation-core-version: v0.2.6
       security-workflows-ref: v1.0.1
       closed-pr-policy: new-branch
       upload-artifacts: false
@@ -91,7 +91,7 @@ Default asset:
 
 ```text
 ghcr.io is not required.
-GitHub Release: opsbento/remediation-core v0.2.5
+GitHub Release: opsbento/remediation-core v0.2.6
 Asset: remediate-linux-amd64
 ```
 
@@ -99,8 +99,8 @@ Asset: remediate-linux-amd64
 
 | Security Workflows | Remediation Core | Status |
 | --- | --- | --- |
-| main | v0.2.5 | Active demo |
-| v1.0.1 | v0.2.5 | Released |
+| main | v0.2.6 | Active demo |
+| v1.0.1 | v0.2.6 | Released |
 
 ## Production Pinning
 
