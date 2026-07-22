@@ -67,6 +67,7 @@ if jq -e '.verification != null' "$result_file" >/dev/null; then
     echo "| Check | Value |"
     echo "|---|---:|"
     jq -r '"| Target findings removed | `\(.verification.target_findings_removed)` |"' "$result_file"
+    jq -r '"| Remaining threshold findings | `\(.verification.remaining_threshold_findings // 0)` |"' "$result_file"
     jq -r '"| New threshold findings | `\(.verification.new_threshold_findings // 0)` |"' "$result_file"
     jq -r '"| New Critical findings | `\(.verification.new_critical_findings)` |"' "$result_file"
     jq -r '"| Dependency files valid | `\(.verification.dependency_files_valid)` |"' "$result_file"

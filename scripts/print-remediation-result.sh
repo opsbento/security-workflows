@@ -31,6 +31,7 @@ fi
 if jq -e '.verification != null' "$result_file" >/dev/null; then
   echo "verification:"
   jq -r '"- target_findings_removed=\(.verification.target_findings_removed)"' "$result_file"
+  jq -r '"- remaining_threshold_findings=\(.verification.remaining_threshold_findings // 0)"' "$result_file"
   jq -r '"- new_threshold_findings=\(.verification.new_threshold_findings // 0)"' "$result_file"
   jq -r '"- new_critical_findings=\(.verification.new_critical_findings)"' "$result_file"
   jq -r '"- dependency_files_valid=\(.verification.dependency_files_valid)"' "$result_file"
