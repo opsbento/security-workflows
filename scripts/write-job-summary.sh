@@ -49,6 +49,17 @@ if jq -e '.vulnerabilities | length > 0' "$result_file" >/dev/null; then
   } >> "$summary_file"
 fi
 
+if jq -e '.manual_reviews | length > 0' "$result_file" >/dev/null; then
+  {
+    echo
+    echo "### Manual review"
+    echo
+    echo "| Dependency | Reason | Checked | Last candidate | Target removed | Remaining threshold | New threshold |"
+    echo "|---|---|---:|---:|---:|---:|---:|"
+    jq -r '.manual_reviews[] | "| `\(.dependency)` | \(.reason) | `\(.candidates_checked // 0)` | `\(.last_candidate // "n/a")` | `\(.target_findings_removed // "n/a")` | `\(.remaining_threshold_findings // 0)` | `\(.new_threshold_findings // 0)` |"' "$result_file"
+  } >> "$summary_file"
+fi
+
 message="$(jq -r '.message // empty' "$result_file")"
 if [[ -n "$message" ]]; then
   {

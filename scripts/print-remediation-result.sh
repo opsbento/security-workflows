@@ -23,6 +23,11 @@ if jq -e '.vulnerabilities | length > 0' "$result_file" >/dev/null; then
   jq -r '.vulnerabilities[] | "- \(.id) \(.severity)"' "$result_file"
 fi
 
+if jq -e '.manual_reviews | length > 0' "$result_file" >/dev/null; then
+  echo "manual_reviews:"
+  jq -r '.manual_reviews[] | "- \(.dependency): \(.reason) checked=\(.candidates_checked // 0) last=\(.last_candidate // "n/a") target_removed=\(.target_findings_removed // "n/a") remaining_threshold=\(.remaining_threshold_findings // 0) new_threshold=\(.new_threshold_findings // 0)"' "$result_file"
+fi
+
 if jq -e '.changed_files | length > 0' "$result_file" >/dev/null; then
   echo "changed_files:"
   jq -r '.changed_files[] | "- \(.)"' "$result_file"

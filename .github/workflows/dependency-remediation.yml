@@ -37,7 +37,7 @@ on:
         description: Pinned remediation-core release tag.
         required: false
         type: string
-        default: v0.2.3
+        default: v0.2.4
       remediation-core-asset:
         description: remediation-core release asset to download.
         required: false
@@ -201,6 +201,12 @@ jobs:
         if: steps.result.outputs.status != 'VERIFIED_UPDATE'
         run: |
           echo "No Pull Request will be created for status ${{ steps.result.outputs.status }}."
+
+      - name: Fail unresolved remediation
+        if: steps.result.outputs.status == 'FAILED' || steps.result.outputs.status == 'NEEDS_MANUAL_REVIEW'
+        run: |
+          echo "Remediation ended with status ${{ steps.result.outputs.status }}." >&2
+          exit 1
 
       - name: Write dry-run summary
         if: steps.result.outputs.status == 'VERIFIED_UPDATE' && inputs['dry-run'] == true
