@@ -100,7 +100,7 @@ Asset: remediate-linux-amd64
 | Security Workflows | Remediation Core | Status |
 | --- | --- | --- |
 | main | v0.2.4 | Active demo |
-| v1.0.1 | v0.2.4 | Planned release |
+| v1.0.1 | v0.2.4 | Released |
 
 ## Production Pinning
 
